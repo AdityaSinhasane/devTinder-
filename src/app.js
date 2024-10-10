@@ -1,25 +1,35 @@
 const express = require('express');
-
 const app = express();  // Here you are creating an instance of the express app. [OR] I am creating a new express.js application.
+const connectDB = require("./config/database");
+const User = require("./models/user");
 
-app.get("/getUserData",(req,res)=>{
-   try{
-    //Logic of database call and get user data
-    throw new Error("asjfgeiorhf");  
-    res.send("User data sent");
-   }
-   catch(err){
-    res.status(500).send("Some Error Occured Contact support team");
-   }
-});
-
-app.use("/",(err,req,res,next)=>{
-    if(err){
-        // log your error
-        res.status(500).send("Something went wrong");
+app.post("/signup",async (req,res)=>{
+    
+    // Creating a new instance of the User Model
+    const user = new User({
+        firstName:"Sachin",
+        lastName:"Tendulya",
+        emailId:"Sachya@Tendulya.com",
+        password:"Tendulya@123"
+    });
+    
+    try{
+        await user.save();
+        res.send("User Added Successfully!"); 
     }
+    catch(err){
+        res.status(400).send("Error saving the user:",err.message);
+    }
+                       
+
 });
 
-app.listen(7777,()=>{
-    console.log("Server is Successfully Listening On Port 7777....");
+connectDB().then(()=>{
+    console.log("Database is Connected Successfully....");
+    app.listen(7777,()=>{
+        console.log("Server is Successfully Listening On Port 7777....");
+    });
+}).catch(()=>{
+    console.error("Database is Not Connected Successfully!!");
 });
+
