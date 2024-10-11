@@ -4,6 +4,7 @@ const connectDB = require("./config/database");
 const User = require("./models/user");
 const { validateSignUpData } = require('./utils/validation');
 const bcrypt = require('bcrypt');
+const validator = require('validator');
 
 app.use(express.json()); //This middleware converts JSON code into the javaScript objects.
 
@@ -15,7 +16,7 @@ app.post("/signup",async (req,res)=>{
         // Encrypt the password and then store into the database
         const {firstName, lastName, emailId, password} = req.body;
         const passwordHash = await bcrypt.hash(password,10);
-        //console.log(passwordHash);
+        console.log(passwordHash);
 
         // Creating a new instance of the User Model ::
         const user = new User({
@@ -29,6 +30,36 @@ app.post("/signup",async (req,res)=>{
         res.status(400).send("ERROR: "+err.message);
     }
                        
+});
+
+
+// Login User 
+app.post("/login", async (req,res)=>{
+    try{
+        const {emailId, password} = req.body;
+        if(!validator.isEmail(emailId)){
+            throw new Error("Email is Not Valid!");
+        }
+
+        // Find user by email
+        const user = await User.findOne({emailId: emailId});
+        if(!user){
+            throw new Error("Invalid Credentials");
+        }
+        
+        // Compare the password with the stored hash
+        const isPasswordValid = await bcrypt.compare(password,user.password);
+
+        if(isPasswordValid){
+            res.send("Login Successful!!");
+        }
+        else{
+            throw new Error("Invalid Credentials");
+        }   
+    }
+    catch(err){
+        res.status(400).send("Login Failed: "+err.message);
+    }
 });
 
 // Get user by email
