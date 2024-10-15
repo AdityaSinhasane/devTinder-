@@ -5,8 +5,13 @@ const User = require("./models/user");
 const { validateSignUpData } = require('./utils/validation');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/auth");
 
-app.use(express.json()); //This middleware converts JSON code into the javaScript objects.
+
+app.use(express.json()); // This middleware converts JSON code into the javaScript objects.
+app.use(cookieParser()); // This middleware does, Whenever any request will come my cookie will be parsed and i can now access those cookies. 
 
 app.post("/signup",async (req,res)=>{   
     try{ 
@@ -32,7 +37,6 @@ app.post("/signup",async (req,res)=>{
                        
 });
 
-
 // Login User 
 app.post("/login", async (req,res)=>{
     try{
@@ -51,10 +55,16 @@ app.post("/login", async (req,res)=>{
         const isPasswordValid = await bcrypt.compare(password,user.password);
 
         if(isPasswordValid){
+            // Create a JWT Token 
+            const token = await jwt.sign({_id: user._id},"DEV@Tinder$7009",{expiresIn:"7d"});    // jswt.sign() method used for Create a Token.
+            
+
+            // Add the token to cookie and send the response back to user 
+            res.cookie("token", token, { expires: new Date(Date.now() + 24 * 3600000)});
             res.send("Login Successful!!");
         }
         else{
-            throw new Error("Invalid Credentials");
+            throw new Error("Invalid Credentials");.0
         }   
     }
     catch(err){
@@ -62,81 +72,21 @@ app.post("/login", async (req,res)=>{
     }
 });
 
-// Get user by email
-app.get("/user",async (req,res)=>{
-    const userEmail = req.body.emailId;
+app.get("/profile", userAuth, async (req,res)=>{
     try{
-        const user = await User.findOne({emailId:userEmail});
-        if(!user){
-            res.status(404).send("User Not Found");
-        }
-        else{
-            res.send(user);
-        }
-        
-        // const users = await User.find({emailId: userEmail});
-        // if(users.length === 0){
-        //     res.status(404).send("User Not Found");
-        // }
-        // else{
-        //     res.send(users);
-        // }
+        const user = req.user; 
+        res.send(user);
     }
     catch(err){
-        res.status(400).send("Something Went Wrong!!");
+        res.status(400).send("ERROR: "+err.message);
     }
 });
 
-// Feed API - GET /feed - get all users from the database
-app.get("/feed",async (req,res)=>{
-    try{    
-        const users = await User.find({});
-        res.send(users);
-    }
-    catch(err){
-        res.status(400).send("Something Went Wrong!!");
-    }
-});
-
-// Delete User from the database
-app.delete("/user",async (req,res)=>{
-    const userId = req.body.userId; 
-    try{
-        // const user = await User.findByIdAndDelete({_id:userId}});
-        //[OR]
-        const user = await User.findByIdAndDelete(userId);
-        res.send("User Deleted Successfully"); 
-    }
-    catch(err){
-        res.status(400).send("Something Went Wrong!!");
-    }
-});
-
-// Update data of the user
-app.patch("/user/:userId",async (req,res)=>{
-    const userId = req.params?.userId;  
-    const data = req.body;
-    
-    try{
-        const ALLOWED_UPDATE = ["photoUrl","about","gender","age","skills"];
-
-        const isUpdateAllowed = Object.keys(data).every((k) => ALLOWED_UPDATE.includes(k));
-        
-        if(!isUpdateAllowed){
-            throw new Error("Update Not Allowed");
-        }
-
-        if(data.skills.length > 15){
-            throw new Error("Skills Can't be more than 10");
-        }
-
-        const user = await User.findByIdAndUpdate({_id:userId}, data, {returnDocument:"after", runValidators:true});
-        console.log(user);
-        res.send("User Updated Successfully");
-    }
-    catch(err){
-        res.status(400).send("Update Failed: "+err.message);
-    }
+app.post("/sendConnectionRequest", userAuth ,async (req,res)=>{
+    const user =  req.user;
+    // Sending a Connection Request :: 
+    console.log("Sending a Connection Request");
+    res.send(user.firstName + " Sent Connection Request!");
 });
 
 connectDB().then(()=>{
