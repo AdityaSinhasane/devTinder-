@@ -126,3 +126,6 @@
 
 - Write code with proper validations for - POST /request/review/status/:requestId          // accepted, rejected
 - Thought Process - POST vs GET
+- Read about ref and populate - https://mongoosejs.com/docs/populate.html
+- Create a GET /user/request/received with all checks
+- Create GET /user/connections
